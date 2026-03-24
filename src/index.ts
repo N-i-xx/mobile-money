@@ -6,10 +6,7 @@ import dotenv from "dotenv";
 
 import { transactionRoutes } from "./routes/transactions";
 import { bulkRoutes } from "./routes/bulk";
-import {
-  transactionDisputeRoutes,
-  disputeRoutes,
-} from "./routes/disputes";
+import { transactionDisputeRoutes, disputeRoutes } from "./routes/disputes";
 import { errorHandler } from "./middleware/errorHandler";
 import { connectRedis, redisClient } from "./config/redis";
 import { pool } from "./config/database";

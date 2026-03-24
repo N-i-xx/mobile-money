@@ -51,11 +51,9 @@ export const depositHandler = async (req: Request, res: Response) => {
       error instanceof Error &&
       error.message.includes("Unable to acquire lock")
     ) {
-      return res
-        .status(409)
-        .json({
-          error: "Transaction already in progress for this phone number",
-        });
+      return res.status(409).json({
+        error: "Transaction already in progress for this phone number",
+      });
     }
     res.status(500).json({ error: "Transaction failed" });
   }

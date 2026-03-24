@@ -27,11 +27,13 @@ A backend service that bridges mobile money providers (MTN, Airtel, Orange) with
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Copy environment variables:
+
    ```bash
    cp .env.example .env
    ```
@@ -74,21 +76,25 @@ Attach a debugger (e.g. VS Code) to `localhost:9229`.
 ## Testing
 
 ### Run Tests
+
 ```bash
 npm test
 ```
 
 ### Run Tests with Coverage
+
 ```bash
 npm run test:coverage
 ```
 
 ### Watch Mode
+
 ```bash
 npm run test:watch
 ```
 
 ### Coverage Requirements
+
 - Minimum coverage: 70% (branches, functions, lines, statements)
 - Coverage reports uploaded to Codecov automatically
 - View detailed reports: https://codecov.io/gh/sublime247/mobile-money
@@ -96,10 +102,12 @@ npm run test:watch
 ## API Endpoints
 
 ### Health Checks
+
 - `GET /health` - Service health status (liveness)
 - `GET /ready` - Readiness probe for Kubernetes (checks database and redis)
 
 ### Transactions
+
 - `POST /api/transactions/deposit` - Deposit from mobile money to Stellar
 - `POST /api/transactions/withdraw` - Withdraw from Stellar to mobile money
 - `GET /api/transactions/:id` - Get transaction status
