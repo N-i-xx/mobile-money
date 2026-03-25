@@ -106,7 +106,28 @@ export const getTransactionHandler = async (req: Request, res: Response) => {
     if (transaction.status === TransactionStatus.Pending) {
       jobProgress = await getJobProgress(id);
     }
+const timeoutMinutes = Number(process.env.TRANSACTION_TIMEOUT_MINUTES || 30);
 
+if (transaction.status === TransactionStatus.Pending) {
+  const createdAt = new Date(transaction.createdAt).getTime();
+  const now = Date.now();
+
+  const diffMinutes = (now - createdAt) / (1000 * 60);
+
+  if (diffMinutes > timeoutMinutes) {
+    await transactionModel.updateStatus(id, TransactionStatus.Failed, {
+      reason: "Transaction timeout",
+    });
+
+    console.log("Transaction timed out (on fetch)", {
+      transactionId: id,
+      timeoutMinutes,
+    });
+
+    transaction.status = TransactionStatus.Failed;
+    (transaction as any).reason = "Transaction timeout";
+  }
+}
     res.json({ ...transaction, jobProgress });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch transaction" });
