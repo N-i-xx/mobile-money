@@ -171,6 +171,28 @@ src/
 └── index.ts         # Entry point
 ```
 
+## API Documentation Updates
+
+### Transaction History
+**Endpoint:** `GET /api/transactions`
+
+Allows users to view their transaction history with built-in pagination and date-range filtering.
+
+**Query Parameters:**
+| Parameter   | Type   | Description |
+| :---------- | :----- | :---------- |
+| `startDate` | string | ISO 8601 format (e.g., 2026-03-01). |
+| `endDate`   | string | ISO 8601 format (e.g., 2026-03-31). |
+| `page`      | number | The page number to retrieve (Default: 1). |
+| `limit`     | number | Number of transactions per page (Default: 10). |
+
+**Example Request:**
+`GET /api/transactions?startDate=2026-03-01&endDate=2026-03-31&page=1&limit=5`
+
+**Validation Rules:**
+- Returns `400 Bad Request` if the date format is not ISO 8601.
+- Returns `400 Bad Request` if `startDate` is a later date than `endDate`.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

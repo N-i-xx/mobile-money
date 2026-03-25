@@ -93,7 +93,12 @@ app.use(errorHandler);
 
 // Redis init
 connectRedis()
-  .then(() => console.log("Redis initialized"))
+  .then(() => {
+    // Only log if not in test mode to keep test output clean
+    if (process.env.NODE_ENV !== 'test') {
+      console.log("Redis initialized");
+    }
+  })
   .catch((err) => {
     console.error("Redis failed", err);
     console.warn("Distributed locks not available");
@@ -103,7 +108,11 @@ connectRedis()
 const queueRouter = createQueueDashboard();
 app.use("/admin/queues", queueRouter);
 
-// Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// --- START SERVER LOGIC ---
+// We check if we are in a test environment to prevent port collisions
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
 
+// Export the app instance for Supertest integration tests
 export default app;

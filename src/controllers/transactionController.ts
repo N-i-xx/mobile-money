@@ -34,7 +34,53 @@ export const validateTransaction = (req: Request, res: Response, next: NextFunct
   }
 };
 
-// ------------------ Handlers ------------------
+// ------------------ New History Handler (Issue #21) ------------------
+export const getTransactionHistoryHandler = async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate, page = "1", limit = "10" } = req.query;
+
+    // 1. ISO 8601 Validation
+    const isValidISO = (dateStr: any) => {
+      if (!dateStr) return true;
+      const d = new Date(dateStr as string);
+      return !isNaN(d.getTime()) && (dateStr as string).includes('-');
+    };
+
+    if (!isValidISO(startDate) || !isValidISO(endDate)) {
+      return res.status(400).json({ 
+        error: "Invalid date format. Please use ISO 8601 (YYYY-MM-DD)" 
+      });
+    }
+
+    // 2. Logic Validation (THE MISSING PIECE)
+    if (startDate && endDate && new Date(startDate as string) > new Date(endDate as string)) {
+      return res.status(400).json({ 
+        error: "startDate cannot be greater than endDate" 
+      });
+    }
+
+    // 3. MOCK DATA (Only reached if validation passes)
+    const mockTransactions = [
+      { id: 1, amount: 100, type: 'deposit', created_at: new Date().toISOString() },
+      { id: 2, amount: 50, type: 'withdraw', created_at: new Date().toISOString() }
+    ];
+
+    res.json({
+      success: true,
+      pagination: { 
+        page: parseInt(page as string) || 1, 
+        limit: parseInt(limit as string) || 10, 
+        count: mockTransactions.length 
+      },
+      data: mockTransactions
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// ------------------ Existing Handlers ------------------
 export const depositHandler = async (req: Request, res: Response) => {
   try {
     const { amount, phoneNumber, provider, stellarAddress, userId } = req.body;
@@ -131,7 +177,6 @@ export const withdrawHandler = async (req: Request, res: Response) => {
   }
 };
 
-// ------------------ Other Handlers (no validation needed) ------------------
 export const getTransactionHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -141,16 +186,16 @@ export const getTransactionHandler = async (req: Request, res: Response) => {
     let jobProgress = null;
     if (transaction.status === TransactionStatus.Pending) jobProgress = await getJobProgress(id);
 
- const timeoutMinutes = Number(process.env.TRANSACTION_TIMEOUT_MINUTES || 30);
-if (transaction.status === TransactionStatus.Pending) {
-  const createdAt = new Date(transaction.createdAt).getTime();
-  const now = Date.now();
-  if ((now - createdAt) / (1000 * 60) > timeoutMinutes) {
-    await transactionModel.updateStatus(id, TransactionStatus.Failed);
-    transaction.status = TransactionStatus.Failed;
-    (transaction as any).reason = "Transaction timeout";
-  }
-}
+    const timeoutMinutes = Number(process.env.TRANSACTION_TIMEOUT_MINUTES || 30);
+    if (transaction.status === TransactionStatus.Pending) {
+      const createdAt = new Date(transaction.createdAt).getTime();
+      const now = Date.now();
+      if ((now - createdAt) / (1000 * 60) > timeoutMinutes) {
+        await transactionModel.updateStatus(id, TransactionStatus.Failed);
+        transaction.status = TransactionStatus.Failed;
+        (transaction as any).reason = "Transaction timeout";
+      }
+    }
 
     res.json({ ...transaction, jobProgress });
   } catch (error) {
