@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import compression from "compression";
 import dotenv from "dotenv";
 
 import { transactionRoutes } from "./routes/transactions";
@@ -52,6 +53,32 @@ const limiter = rateLimit({
 // Middleware
 app.use(metricsMiddleware);
 app.use(helmet());
+
+// Compression middleware
+if (process.env.COMPRESSION_ENABLED !== 'false') {
+  app.use(compression({
+    threshold: parseInt(process.env.COMPRESSION_THRESHOLD || '1024'),
+    level: parseInt(process.env.COMPRESSION_LEVEL || '6'),
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      // Don't compress already compressed content types
+      const contentType = res.getHeader('content-type') as string;
+      if (contentType && (
+        contentType.includes('image/') ||
+        contentType.includes('video/') ||
+        contentType.includes('audio/') ||
+        contentType.includes('application/zip') ||
+        contentType.includes('application/gzip')
+      )) {
+        return false;
+      }
+      return compression.filter(req, res);
+    }
+  }));
+}
+
 app.use(cors());
 
 // --- Updated: JSON body parser with size limit ---
