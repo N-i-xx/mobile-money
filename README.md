@@ -12,6 +12,9 @@ A backend service that bridges mobile money providers (MTN, Airtel, Orange) with
 - Stellar blockchain integration
 - RESTful API and GraphQL (`/graphql`)
 - PostgreSQL database
+- Redis (for queues and locking)
+- Background processing (BullMQ)
+- Email notifications (Nodemailer)
 - Docker support
 - TypeScript
 
@@ -236,11 +239,11 @@ Allows users to view their transaction history with built-in pagination and date
 | :---------- | :----- | :---------- |
 | `startDate` | string | ISO 8601 format (e.g., 2026-03-01). |
 | `endDate`   | string | ISO 8601 format (e.g., 2026-03-31). |
-| `page`      | number | The page number to retrieve (Default: 1). |
-| `limit`     | number | Number of transactions per page (Default: 10). |
+| `offset`    | number | The number of items to skip (Default: 0). |
+| `limit`     | number | Number of transactions per page (Default: 20, Max: 100). |
 
 **Example Request:**
-`GET /api/transactions?startDate=2026-03-01&endDate=2026-03-31&page=1&limit=5`
+`GET /api/transactions?startDate=2026-03-01&endDate=2026-03-31&offset=0&limit=5`
 
 **Validation Rules:**
 - Returns `400 Bad Request` if the date format is not ISO 8601.

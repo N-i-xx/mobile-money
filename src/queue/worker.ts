@@ -8,10 +8,14 @@ import { queueOptions } from "./config";
 import { TransactionModel, TransactionStatus } from "../models/transaction";
 import { MobileMoneyService } from "../services/mobilemoney/mobileMoneyService";
 import { StellarService } from "../services/stellar/stellarService";
+import { EmailService } from "../services/email";
+import { UserModel } from "../models/users";
 
 const transactionModel = new TransactionModel();
 const mobileMoneyService = new MobileMoneyService();
 const stellarService = new StellarService();
+const emailService = new EmailService();
+const userModel = new UserModel();
 
 const workerOptions = {
   ...queueOptions,
@@ -70,6 +74,15 @@ export const transactionWorker = new Worker<
           TransactionStatus.Completed,
         );
 
+        // Fetch user and send email
+        const transaction = await transactionModel.findById(transactionId);
+        if (transaction?.userId) {
+          const user = await userModel.findById(transaction.userId);
+          if (user?.email) {
+            await emailService.sendTransactionReceipt(user.email, transaction);
+          }
+        }
+
         await job.updateProgress(100);
 
         console.log(
@@ -104,6 +117,15 @@ export const transactionWorker = new Worker<
           TransactionStatus.Completed,
         );
 
+        // Fetch user and send email
+        const transaction = await transactionModel.findById(transactionId);
+        if (transaction?.userId) {
+          const user = await userModel.findById(transaction.userId);
+          if (user?.email) {
+            await emailService.sendTransactionReceipt(user.email, transaction);
+          }
+        }
+
         await job.updateProgress(100);
 
         console.log(
@@ -121,6 +143,15 @@ export const transactionWorker = new Worker<
         transactionId,
         TransactionStatus.Failed,
       );
+
+      // Fetch user and send email
+      const transaction = await transactionModel.findById(transactionId);
+      if (transaction?.userId) {
+        const user = await userModel.findById(transaction.userId);
+        if (user?.email) {
+          await emailService.sendTransactionFailure(user.email, transaction, error.message);
+        }
+      }
       throw error;
     }
   },
