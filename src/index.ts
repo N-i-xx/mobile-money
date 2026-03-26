@@ -24,6 +24,7 @@ import { transactionDisputeRoutes, disputeRoutes } from "./routes/disputes";
 import { statsRoutes } from "./routes/stats";
 import { reportsRoutes } from "./routes/reports";
 import { createKYCRoutes } from "./routes/kycRoutes";
+import feesRoutes from "./routes/fees";
 import { errorHandler } from "./middleware/errorHandler";
 import {
   connectRedis,
@@ -210,6 +211,7 @@ app.use("/api/disputes", disputeRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/kyc", createKYCRoutes(pool));
+app.use("/api/fees", feesRoutes);
 
 app.use(
   (
