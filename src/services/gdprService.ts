@@ -1,13 +1,12 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { v4 as uuid } from "uuid";
-import { TransactionService } from "./transanctionService";
 import { TransactionModel } from "../models/transaction";
-import { getUserById } from "./userService";
 import { createZipFile } from "../utils/create-zip-file";
-import { tmpdir } from "node:os";
+import { TransactionService } from "./transanctionService";
+import { getUserById } from "./userService";
 
-export class GDPR {
+export class GDPRService {
   private txService: TransactionService;
 
   constructor() {
@@ -46,8 +45,8 @@ export class GDPR {
 
       return zipPath;
     } catch (err) {
-      
-      console.error(err);
+      await fs.rm(tempDir, { recursive: true }).catch(() => {});
+      throw err;
     }
   }
 }
