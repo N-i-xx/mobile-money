@@ -18,7 +18,7 @@ import { encrypt, decrypt } from "../utils/encryption";
 
 const CHALLENGE_TTL_SECONDS = 300; // 5 minutes
 
-function getRpConfig(): { rpName: string; rpID: string; origin: string } {
+export function getRpConfig(): { rpName: string; rpID: string; origin: string } {
   return {
     rpName: process.env.WEBAUTHN_RP_NAME || "Mobile Money App",
     rpID: process.env.WEBAUTHN_RP_ID || "localhost",
