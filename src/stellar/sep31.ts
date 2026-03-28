@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import rateLimit from "express-rate-limit";
+import { sep31RateLimiter } from "../middleware/rateLimit";
 import crypto from "crypto";
 import { TransactionModel, TransactionStatus } from "../models/transaction";
 import { getConfiguredPaymentAsset } from "../services/stellar/assetService";
@@ -8,17 +8,7 @@ const router = Router();
 const transactionModel = new TransactionModel();
 
 // Strict rate limiter for SEP-31 endpoints
-const sep31Limiter = process.env.NODE_ENV === "test" 
-  ? (req: any, res: any, next: any) => next()
-  : rateLimit({
-      windowMs: 60 * 1000, // 1 minute
-      max: 10, // Limit each IP to 10 requests per window (strict)
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: {
-        error: "Too many requests, please try again later.",
-      },
-    });
+const sep31Limiter = sep31RateLimiter;
 
 /**
  * GET /info
