@@ -4,8 +4,9 @@ This suite provides tools and scenarios for evaluating the performance and stabi
 
 ## Tools Included
 
-1.  **k6 (`tests/load/k6`)**: A sophisticated load testing engine for complex scenarios and ramping loads.
-2.  **Autocannon (`tests/load/autocannon`)**: A lightweight benchmarking tool for high-concurrency throughput testing.
+1.  **`tests/load/api.js`** — Primary k6 suite. Multi-scenario, transaction-focused, targets 1 000 concurrent VUs, emits a server-sizing report.
+2.  **`tests/load/k6/load_test_scenarios.js`** — Legacy k6 smoke/read/write scenarios (20 VUs max).
+3.  **`tests/load/autocannon/benchmark.js`** — Lightweight high-concurrency throughput benchmark.
 
 ---
 
@@ -13,72 +14,105 @@ This suite provides tools and scenarios for evaluating the performance and stabi
 
 ### Prerequisites
 -   **Node.js**: Required for Autocannon.
--   **k6**: Must be [installed on your system](https://k6.io/docs/getting-started/installation/).
+-   **k6**: Must be [installed](https://k6.io/docs/getting-started/installation/).
+-   **Seeded database**: Transaction endpoints require a valid `userId`. Run `npm run seed` against the target environment before load testing.
 
-### Running Benchmarks (Easy)
-Use the included `npm` script to run a high-concurrency baseline benchmark:
+### Create the results directory (first time only)
+```bash
+mkdir -p tests/load/results
+```
+
+### Environment variables
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `BASE_URL` | `http://localhost:3000` | API base URL |
+| `API_KEY` | `dev-admin-key` | Admin API key (`X-API-Key` header) |
+| `TEST_USER_ID` | `test-user-load` | User ID that exists in the test database |
+| `SCENARIO` | `peak` | Load profile (see table below) |
+
+---
+
+## 2. Running the Primary Suite (`tests/load/api.js`)
+
+```bash
+# Default: peak load — ramps to 1 000 concurrent VUs
+npm run test:load
+
+# Stress test — ramps to 500 VUs
+npm run test:load:stress
+
+# Pure transaction writes at 1 000 VUs (deposit + withdraw)
+npm run test:load:transactions
+
+# Breakpoint — climbs until thresholds abort the run
+npm run test:load:breakpoint
+
+# Save raw k6 metrics to a JSON file
+k6 run --out json=tests/load/results/run-$(date +%s).json tests/load/api.js
+
+# Target a remote environment
+k6 run -e BASE_URL=https://staging.api.example.com \
+       -e API_KEY=your-key \
+       -e TEST_USER_ID=a-real-user-uuid \
+       tests/load/api.js
+```
+
+### Scenario profiles
+
+| Scenario | Peak VUs | Duration | Purpose |
+| :--- | :---: | :--- | :--- |
+| `smoke` | 5 | 1 min | Sanity check before heavier runs |
+| `average` | 100 | ~10 min | Normal production traffic |
+| `stress` | 500 | ~10 min | Find the degradation knee |
+| `peak` | **1 000** | ~18 min | Rated capacity target *(default)* |
+| `soak` | 100 | ~36 min | Surface memory/connection leaks |
+| `breakpoint` | ∞ | until fail | Discover the absolute breaking point |
+| `transactions` | **1 000** | ~15 min | Max write throughput (deposits + withdraws) |
+
+### Custom metrics tracked
+
+| Metric | Description |
+| :--- | :--- |
+| `deposit_latency_ms` | End-to-end duration of `POST /api/v1/transactions/deposit` |
+| `withdraw_latency_ms` | End-to-end duration of `POST /api/v1/transactions/withdraw` |
+| `list_latency_ms` | End-to-end duration of `GET /api/v1/transactions` |
+| `tx_created_total` | Counter of successfully created transactions |
+| `tx_failed_total` | Counter of failed transaction attempts |
+| `tx_success_rate` | Rate of successful transactions (threshold: > 90 %) |
+
+---
+
+## 3. Running the Benchmark (Autocannon)
+
 ```bash
 npm run test:bench
 ```
-This targets health checks and simple API endpoints.
 
-### Running Complex Scenarios (k6)
-Run scenarios with ramping virtual users (VUs):
+To review the last benchmark result:
 ```bash
-npm run test:load
-```
-To run against a remote environment or custom URL:
-```bash
-BASE_URL=https://your-api.com k6 run tests/load/k6/load_test_scenarios.js
+node tests/load/review_effectiveness.js
 ```
 
 ---
 
-## 2. Load Scenarios
+## 4. Acceptance Criteria (KPIs)
 
-### **Scenario A: Baseline Stability (Health Checks)**
--   **Goal**: Ensure the server responds to heartbeats even under constant moderate traffic.
--   **Target**: `/health` and `/ready`
--   **Load**: 10 Constant VUs
-
-### **Scenario B: Read Pressure (Transaction History)**
--   **Goal**: Assess database performance during concurrent read operations.
--   **Target**: `/api/transactions`
--   **Load**: Ramping from 0 to 20 VUs over 2 minutes.
-
-### **Scenario C: Write Pressure (Deposits)**
--   **Goal**: Evaluate transaction ACID compliance and queueing performance.
--   **Target**: `/api/transactions/deposit`
--   **Load**: 5 parallel users performing 20 iterations each.
-
----
-
-## 3. Monitoring & Performance KPIs
-
-### Real-time Monitoring
-During the load test, monitor these metrics:
-1.  **Response Times**: Check `http_req_duration` in k6 output.
-2.  **Success Rate**: Check `http_req_failed` (must be < 1%).
-3.  **App Metrics**: Visit `/api/stats` (admin) or the internal prometheus registry.
-
-### Acceptance Criteria (KPIs)
-| Metric | Threshold (Typical) | Critical |
+| Metric | Target | Critical limit |
 | :--- | :--- | :--- |
-| **P95 Latency** | < 200ms | < 500ms |
-| **P99 Latency** | < 1000ms | < 2000ms |
-| **Error Rate** | < 0.1% | < 1.0% |
-| **Throughput** | > 50 RPS | > 20 RPS |
+| **P50 latency** (deposit) | < 500ms | — |
+| **P95 latency** (deposit) | < 2 000ms | abort on breakpoint |
+| **P99 latency** (deposit) | < 6 000ms | — |
+| **HTTP error rate** | < 5 % | abort on breakpoint |
+| **TX success rate** | > 90 % | abort on breakpoint |
 
 ---
 
-## 4. Analyzing Effectiveness
+## 5. Interpreting Results
 
-To review the effectiveness of these tests, look for:
--   **Bottlenecks**: When does the error rate increase? (Is it at 10, 50, or 100 VUs?)
--   **Resource Usage**: Monitor CPU/Memory on the server during `npm run test:bench`.
--   **DB Contention**: Look for slow queries in the logs during the `read_load` scenario.
+After a run, `tests/load/results/load-test-summary.json` contains the full machine-readable report. The stdout report includes a **SERVER SIZING** section with specific recommendations based on actual measurements:
 
----
+-   **WITHIN TARGET** — system held up; report shows the recommended TPS ceiling with 1.5× headroom.
+-   **DEGRADED** — P95 exceeded; report points to DB query tuning or read replicas.
+-   **OVER CAPACITY** — error rate exceeded; report recommends horizontal scaling and queue tuning.
 
-## 5. Reviewing Load Effectiveness
-The effectiveness of a load test is measured by its ability to break the system in a predictable way. If the test passes without surfacing any issues, consider increasing the `vus` or reducing the `timeout` in `tests/load/k6/options.js`.
+Look for the inflection point in the breakpoint scenario — the VU count where errors first appear is your system's soft ceiling under current hardware.

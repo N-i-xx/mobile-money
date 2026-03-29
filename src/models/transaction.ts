@@ -1,6 +1,7 @@
 import { pool, queryRead, queryWrite } from "../config/database";
 import { generateReferenceNumber } from "../utils/referenceGenerator";
 import { encrypt, decrypt } from "../utils/encryption";
+import { WebSocketManager } from "../websocket";
 
 export enum TransactionStatus {
   Pending = "pending",
@@ -361,10 +362,36 @@ export class TransactionModel {
   }
 
   async updateStatus(id: string, status: TransactionStatus): Promise<void> {
-    await queryWrite(
-      "UPDATE transactions SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+    const result = await queryWrite<{ user_id: string | null }>(
+      `UPDATE transactions
+       SET status = $1,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING user_id`,
       [status, id],
     );
+
+    if (result.rowCount === 0) {
+      return;
+    }
+
+    const wsManager = WebSocketManager.getInstance();
+    if (!wsManager) {
+      return;
+    }
+
+    try {
+      await wsManager.broadcastTransactionUpdate({
+        id,
+        status,
+        userId: result.rows[0]?.user_id ?? null,
+      });
+    } catch (error) {
+      console.error(
+        `[websocket] Failed to broadcast transaction status update for ${id}`,
+        error,
+      );
+    }
   }
 
   async updateWebhookDelivery(

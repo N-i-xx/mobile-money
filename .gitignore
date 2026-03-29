@@ -2,6 +2,7 @@ node_modules/
 contracts/target/
 dist/
 .env
+.idea
 *.log
 .DS_Store
 coverage/
@@ -25,3 +26,6 @@ yarn.lock
 certs/
 .env
 .env
+
+# Load test output
+tests/load/results/*.json
