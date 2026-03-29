@@ -446,4 +446,3 @@ sep24Router.get("/health", (_req: Request, res: Response) => {
 });
 
 export default sep24Router;
-export { getSep24Config };
