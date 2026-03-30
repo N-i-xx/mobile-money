@@ -1,10 +1,6 @@
 import { rabbitMQManager } from "./rabbitmq";
 import { transactionQueue } from "./transactionQueue";
-import { closeWorker } from "./worker";
-
-export async function shutdownQueue(): Promise<void> {
-  console.log("Shutting down queues...");
-import { transactionWorker, closeWorker } from "./worker";
+import { closeWorker, transactionWorker } from "./worker";
 import {
   providerBalanceAlertQueue,
   closeProviderBalanceAlertQueue,
@@ -17,6 +13,7 @@ import {
 import { closeAccountMergeWorker } from "./accountMergeWorker";
 
 export async function shutdownQueue(): Promise<void> {
+  console.log("Shutting down queues...");
   await closeProviderBalanceAlertWorker().catch(() => undefined);
   await closeProviderBalanceAlertQueue().catch(() => undefined);
   await closeAccountMergeWorker().catch(() => undefined);
@@ -39,15 +36,7 @@ export type {
   TransactionJobData,
   TransactionJobResult,
 } from "./transactionQueue";
-export { closeWorker };
-export { transactionWorker, closeWorker };
-export {
-  scheduleProviderBalanceAlertJob,
-  startProviderBalanceAlertWorker,
-  closeProviderBalanceAlertWorker,
-  providerBalanceAlertQueue,
-  closeProviderBalanceAlertQueue,
-};
+
 export { createQueueDashboard } from "./dashboard";
 export {
   getQueueHealth,
@@ -74,4 +63,7 @@ export type {
   AccountMergeJobData,
   AccountMergeJobResult,
 } from "./accountMergeQueue";
-export { accountMergeWorker, closeAccountMergeWorker } from "./accountMergeWorker";
+export {
+  accountMergeWorker,
+  closeAccountMergeWorker,
+} from "./accountMergeWorker";
