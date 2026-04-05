@@ -323,12 +323,12 @@ export function createSep10Router(service?: Sep10Service): Router {
   }
 
   /**
-   * GET /auth
+   * GET /
    * 
    * SEP-10 challenge endpoint
    * Returns a challenge transaction for the client to sign
    */
-  router.get("/auth", (req: Request, res: Response) => {
+  router.get("/", (req: Request, res: Response) => {
     if (!sep10Service) {
       return res.status(503).json({
         error: "SEP-10 service not configured",
@@ -368,12 +368,12 @@ export function createSep10Router(service?: Sep10Service): Router {
   });
 
   /**
-   * POST /auth
+   * POST /
    * 
    * SEP-10 verification endpoint
    * Verifies the signed challenge transaction and issues a JWT token
    */
-  router.post("/auth", (req: Request, res: Response) => {
+  router.post("/", (req: Request, res: Response) => {
     if (!sep10Service) {
       return res.status(503).json({
         error: "SEP-10 service not configured",
@@ -410,11 +410,11 @@ export function createSep10Router(service?: Sep10Service): Router {
   });
 
   /**
-   * GET /auth/health
+   * GET /health
    * 
    * Health check endpoint
    */
-  router.get("/auth/health", (req: Request, res: Response) => {
+  router.get("/health", (req: Request, res: Response) => {
     if (!sep10Service) {
       return res.status(503).json({
         status: "unavailable",
