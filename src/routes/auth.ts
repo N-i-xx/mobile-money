@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { generateToken, verifyToken, JWTPayload, generateRefreshToken, verifyRefreshToken } from '../auth/jwt';
 import { createSSORouter } from '../auth/sso';
+import { createOIDCRouter, initializeOIDCProviders } from '../auth/oidc';
 import { enforceSSOForEmployees } from '../middleware/ssoEnforcement';
 import { tokenController } from '../controllers/tokenController';
 import { authenticateToken } from '../middleware/auth';
@@ -8,8 +9,12 @@ import { authenticateUser, getUserPermissions } from '../services/userService';
 
 export const authRoutes = Router();
 
+// Initialize OIDC Strategy (Google/Azure)
+initializeOIDCProviders();
+
 // Mount SSO routes
 authRoutes.use('/sso', createSSORouter());
+authRoutes.use('/sso/oidc', createOIDCRouter());
 
 /**
  * POST /api/auth/login
