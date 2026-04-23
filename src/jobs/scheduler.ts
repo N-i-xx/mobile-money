@@ -8,6 +8,7 @@ import { runSanctionSyncJob } from "./sanctionSyncJob";
 import { MonitoringService } from "../services/monitoringService";
 import { createPagerDutyService } from "../services/pagerDutyService";
 import { runProviderBalanceAlertJob } from "./balances";
+import { runStaleTransactionWatchdog } from "./staleTransactionWatchdog";
 
 interface JobConfig {
   name: string;

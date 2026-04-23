@@ -1,8 +1,6 @@
 import "./tracer";
 import express, { NextFunction, Request, Response } from "express";
 import { IncomingMessage, Server } from "http";
-import cors from "cors";
-import helmet from "helmet";
 // replaced express-rate-limit with our redis-backed middleware
 import compression from "compression";
 import dotenv from "dotenv";
@@ -47,8 +45,8 @@ import {
   createRedisStore,
   SESSION_TTL_SECONDS,
 } from "./config/redis";
-import { createCorsOptions } from "./config/cors";
 import { createOAuthRouter } from "./auth/oauth";
+import { applySecurityMiddleware } from "./config/express";
 import { pool } from "./config/database";
 import {
   globalTimeout,
@@ -104,7 +102,7 @@ if (process.env.SENTRY_DSN) {
 app.use(sentryBreadcrumbMiddleware);
 
 app.use(metricsMiddleware);
-app.use(helmet());
+applySecurityMiddleware(app);
 
 if (process.env.COMPRESSION_ENABLED !== "false") {
   app.use(
@@ -132,7 +130,6 @@ if (process.env.COMPRESSION_ENABLED !== "false") {
   );
 }
 
-app.use(cors(createCorsOptions()));
 app.use(
   express.json({
     limit: process.env.REQUEST_SIZE_LIMIT || "10mb",

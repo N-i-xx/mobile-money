@@ -11,6 +11,12 @@ import { executeWithCircuitBreaker } from "../../utils/circuitBreaker";
 import { pool } from "../../config/database";
 import { MonitoringService } from "../monitoringService";
 
+export type ProviderTransactionStatus =
+  | "completed"
+  | "failed"
+  | "pending"
+  | "unknown";
+
 interface MobileMoneyProvider {
   requestPayment(
     phoneNumber: string,
@@ -20,6 +26,9 @@ interface MobileMoneyProvider {
     phoneNumber: string,
     amount: string,
   ): Promise<{ success: boolean; data?: unknown; error?: unknown }>;
+  getTransactionStatus?(
+    referenceId: string,
+  ): Promise<{ status: ProviderTransactionStatus }>;
 }
 
 interface ProviderExecutionResult {
@@ -27,6 +36,7 @@ interface ProviderExecutionResult {
   provider?: string;
   data?: unknown;
   error?: unknown;
+  providerResponseTimeMs?: number;
 }
 
 class MobileMoneyError extends Error {
@@ -136,12 +146,14 @@ export class MobileMoneyService {
     op: "requestPayment" | "sendPayout",
     phoneNumber: string,
     amount: string,
-  ) {
-    if (op === "requestPayment") {
-      return provider.requestPayment(phoneNumber, amount);
-    }
+  ): Promise<{ success: boolean; data?: unknown; error?: unknown; providerResponseTimeMs: number }> {
+    const startTime = performance.now();
+    const result = op === "requestPayment"
+      ? await provider.requestPayment(phoneNumber, amount)
+      : await provider.sendPayout(phoneNumber, amount);
+    const providerResponseTimeMs = Math.round((performance.now() - startTime) * 100) / 100;
 
-    return provider.sendPayout(phoneNumber, amount);
+    return { ...result, providerResponseTimeMs };
   }
 
   private getOperationType(op: "requestPayment" | "sendPayout") {
@@ -192,6 +204,7 @@ export class MobileMoneyService {
               success: true,
               provider: providerKey,
               data: result.data,
+              providerResponseTimeMs: result.providerResponseTimeMs,
             };
           }
 
@@ -272,14 +285,14 @@ export class MobileMoneyService {
       amount,
     );
 
-    // result shape: { success: true, provider: <usedProvider>, data }
+    // result shape: { success: true, provider: <usedProvider>, data, providerResponseTimeMs }
     if (result.success) {
       transactionTotal.inc({
         type: "payment",
         provider: result.provider as string,
         status: "success",
       });
-      return { success: true, data: result.data };
+      return { success: true, data: result.data, providerResponseTimeMs: result.providerResponseTimeMs };
     }
 
     // Shouldn't reach here; safeguard
@@ -305,13 +318,32 @@ export class MobileMoneyService {
         provider: result.provider as string,
         status: "success",
       });
-      return { success: true, data: result.data };
+      return { success: true, data: result.data, providerResponseTimeMs: result.providerResponseTimeMs };
     }
 
     throw new MobileMoneyError(
       "PROVIDER_ERROR",
       `Payout failed for provider '${providerKey}'`,
     );
+  }
+
+  /**
+   * Query a provider for the current status of a transaction.
+   * Returns 'unknown' if the provider does not support status checks or errors out.
+   */
+  async getTransactionStatus(
+    providerKey: string,
+    referenceId: string,
+  ): Promise<{ status: ProviderTransactionStatus }> {
+    const provider = this.providers.get(providerKey.toLowerCase());
+    if (!provider || typeof provider.getTransactionStatus !== "function") {
+      return { status: "unknown" };
+    }
+    try {
+      return await provider.getTransactionStatus(referenceId);
+    } catch {
+      return { status: "unknown" };
+    }
   }
 
   /**

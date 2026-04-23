@@ -22,6 +22,7 @@ const TRANSACTION_SELECT_COLUMNS = `
   amount::text AS amount,
   phone_number AS "phoneNumber",
   provider,
+  provider_reference AS "providerReference",
   stellar_address AS "stellarAddress",
   status,
   COALESCE(tags, '{}') AS tags,
@@ -80,8 +81,13 @@ export interface Transaction {
   convertedAmount?: string;
   phoneNumber: string;
   provider: string;
+providerReference?: string | null;
   stellarAddress: string;
   status: TransactionStatus;
+  // NEW fields
+  assetType: AssetType;
+  assetCode?: string;   // e.g. 'USDC' — only for anchored assets
+  assetIssuer?: string; // issuer address — only for anchored assets
   tags: string[];
   notes?: string;
   adminNotes?: string;
@@ -113,6 +119,7 @@ export interface CreateTransactionInput {
   amount: string | number;
   phoneNumber: string;
   provider: string;
+providerReference?: string | null;
   stellarAddress: string;
   status: TransactionStatus;
   tags?: string[];
@@ -162,6 +169,8 @@ export function mapTransactionRow(
     amount: String(r.amount ?? ""),
     phoneNumber: decrypt(String(db.phone_number ?? r.phoneNumber ?? "")) as string,
     provider: String(r.provider ?? ""),
+providerReference:
+      db.provider_reference ?? r.providerReference ?? null,
     stellarAddress: decrypt(String(db.stellar_address ?? r.stellarAddress ?? "")) as string,
     status: r.status as TransactionStatus,
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
@@ -205,11 +214,11 @@ export class TransactionModel {
     const result = await queryWrite(
       `INSERT INTO transactions (
            reference_number, type, amount, currency, original_amount, 
-           converted_amount, phone_number, provider, stellar_address, 
+           converted_amount, phone_number, provider, provider_reference, stellar_address, 
            status, tags, notes, user_id, idempotency_key, 
            idempotency_expires_at, metadata, location_metadata
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         RETURNING *`,
       [
         referenceNumber,
@@ -220,6 +229,7 @@ export class TransactionModel {
         data.convertedAmount ?? null,
         encrypt(data.phoneNumber),
         data.provider,
+        data.providerReference ?? null,
         encrypt(data.stellarAddress),
         data.status,
         tags,
