@@ -15,6 +15,7 @@ import fs from "fs";
 
 let enforcer: Enforcer;
 let isWatching = false;
+let watcher: fs.FSWatcher | null = null;
 
 /**
  * Initialize Casbin Enforcer
@@ -24,12 +25,14 @@ export async function initCasbin(): Promise<Enforcer> {
     const modelPath = path.resolve(__dirname, "../config/casbin_model.conf");
     const policyPath = path.resolve(__dirname, "../config/casbin_policy.csv");
     enforcer = await newEnforcer(modelPath, policyPath);
-    
+
     // Implement hot-loading
     if (!isWatching) {
-      fs.watch(policyPath, async (eventType) => {
+      watcher = fs.watch(policyPath, async (eventType) => {
         if (eventType === 'change') {
-          console.log('Casbin policy file changed, reloading policies...');
+          if (process.env.NODE_ENV !== 'test') {
+            console.log('Casbin policy file changed, reloading policies...');
+          }
           await enforcer.loadPolicy();
         }
       });
@@ -37,6 +40,17 @@ export async function initCasbin(): Promise<Enforcer> {
     }
   }
   return enforcer;
+}
+
+/**
+ * Close watchers for clean shutdown (primarily for testing)
+ */
+export function closeCasbinWatcher() {
+  if (watcher) {
+    watcher.close();
+    watcher = null;
+    isWatching = false;
+  }
 }
 
 /**
@@ -89,7 +103,7 @@ export function authorizeObj(resourceType: string, action: string, requireOwners
       req.userRole = userRole.role_name;
 
       const e = await initCasbin();
-      
+
       const sub = {
         id: req.jwtUser.userId,
         role: userRole.role_name
@@ -163,7 +177,7 @@ export function requirePermission(permission: string) {
       const allowed = await e.enforce(sub, { type: objType }, act);
 
       // If simple policy doesn't allow, check if they are "admin" implicitly by Casbin model.
-      if (!allowed && userRole.role_name !== "admin" && userRole.role_name !== "admin:system") {
+      if (!allowed && !['admin', 'admin:system'].includes(userRole.role_name)) {
         return res.status(403).json({
           error: "Forbidden",
           message: `Insufficient permissions. Required: ${permission}`,
@@ -183,7 +197,7 @@ export function requireAnyPermission(permissions: string[]) {
       if (!req.jwtUser) return res.status(401).json({ error: "Unauthorized" });
       const userRole = await getUserRole(req.jwtUser.userId);
       if (!userRole) return res.status(403).json({ error: "Forbidden" });
-      
+
       req.userRole = userRole.role_name;
       const e = await initCasbin();
       const sub = { id: req.jwtUser.userId, role: userRole.role_name };
@@ -194,17 +208,17 @@ export function requireAnyPermission(permissions: string[]) {
 
       let hasPermission = false;
       for (const p of permissions) {
-         let objType = "*";
-         let act = p;
-         if (p.includes(":")) {
-           const parts = p.split(":");
-           objType = parts[0];
-           act = parts[1];
-         }
-         if (await e.enforce(sub, { type: objType }, act)) {
-           hasPermission = true;
-           break;
-         }
+        let objType = "*";
+        let act = p;
+        if (p.includes(":")) {
+          const parts = p.split(":");
+          objType = parts[0];
+          act = parts[1];
+        }
+        if (await e.enforce(sub, { type: objType }, act)) {
+          hasPermission = true;
+          break;
+        }
       }
 
       if (!hasPermission) {
@@ -228,7 +242,7 @@ export function requireRole(role: string) {
       req.userRole = userRole.role_name;
 
       if (userRole.role_name !== role && userRole.role_name !== "admin") {
-         return res.status(403).json({ error: "Forbidden", message: `Required: ${role}` });
+        return res.status(403).json({ error: "Forbidden", message: `Required: ${role}` });
       }
       next();
     } catch (error) {
