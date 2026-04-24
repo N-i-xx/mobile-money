@@ -34,7 +34,9 @@
     "test:load:transactions": "k6 run -e SCENARIO=transactions tests/load/api.js",
     "test:load:breakpoint": "k6 run -e SCENARIO=breakpoint tests/load/api.js",
     "test:load:legacy": "k6 run tests/load/k6/load_test_scenarios.js",
-    "test:bench": "node tests/load/autocannon/benchmark.js"
+    "test:bench": "node tests/load/autocannon/benchmark.js",
+    "sdk:generate": "openapi-generator-cli generate -i openapi.yaml -c sdk-config.yaml -o sdk",
+    "sdk:build": "cd sdk && ./gradlew build"
   },
   "lint-staged": {
     "*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}": "prettier --write"
