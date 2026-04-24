@@ -1,0 +1,8 @@
+# This file is symlinked or copied to /.well-known/stellar.toml for SEP-1 compliance
+# See: https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0001.md
+
+# For development, you may symlink or copy this file to public/.well-known/stellar.toml
+# and serve the public directory statically in your Express app.
+
+# Example configuration:
+# app.use('/.well-known', express.static(path.join(__dirname, '../public/.well-known')))
