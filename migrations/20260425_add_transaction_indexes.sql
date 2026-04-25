@@ -56,3 +56,54 @@ CREATE INDEX IF NOT EXISTS idx_transactions_status_created_covering
   ON transactions (status, created_at DESC)
   INCLUDE (id, reference_number, type, amount, phone_number, provider,
            stellar_address, user_id, updated_at);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 6. Partial unique index on idempotency_key (non-NULL rows only)
+--    Speeds up: TransactionModel.findActiveByIdempotencyKey() and
+--               releaseExpiredIdempotencyKey() — both filter by idempotency_key.
+--    Partial index keeps it small (only rows with an active key are indexed).
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_idempotency_key
+  ON transactions (idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_transactions_idempotency_expires_at
+  ON transactions (idempotency_expires_at)
+  WHERE idempotency_expires_at IS NOT NULL;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 7. AML alerts indexes
+--    The aml_alerts table is created in database/migrations/ but its indexes
+--    were never added to the migrations/ folder used by migrate:up.
+--    AMLAlertModel.list() filters by status, user_id, severity, created_at.
+--    AMLAlertModel.getAlertsByTransaction() filters by transaction_id.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_aml_alerts_status
+  ON aml_alerts (status);
+
+CREATE INDEX IF NOT EXISTS idx_aml_alerts_user_id
+  ON aml_alerts (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_aml_alerts_transaction_id
+  ON aml_alerts (transaction_id);
+
+CREATE INDEX IF NOT EXISTS idx_aml_alerts_severity
+  ON aml_alerts (severity);
+
+-- Composite: list() most common filter — status + date range, newest first
+CREATE INDEX IF NOT EXISTS idx_aml_alerts_status_created
+  ON aml_alerts (status, created_at DESC);
+
+-- Composite: list() filter by user + status (AML review dashboard)
+CREATE INDEX IF NOT EXISTS idx_aml_alerts_user_status
+  ON aml_alerts (user_id, status);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 8. AML alert review history index
+--    getReviewHistory() queries by alert_id ORDER BY created_at DESC.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_aml_review_history_alert_id
+  ON aml_alert_review_history (alert_id);
+
+CREATE INDEX IF NOT EXISTS idx_aml_review_history_created_at
+  ON aml_alert_review_history (created_at DESC);
