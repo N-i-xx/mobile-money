@@ -804,3 +804,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ for financial inclusion in Africa**
+
+## 📚 Internal API Documentation Portal (Docusaurus + Redoc)
+
+This repository now includes a dedicated documentation portal in `docs-portal/` that transforms `openapi.yaml` into a searchable, partner-friendly API reference.
+
+### Run docs portal locally
+
+```bash
+npm run docs:dev
+```
+
+### Build docs portal
+
+```bash
+npm run docs:build
+```
+
+### Release deployment
+
+On every GitHub Release publication, the workflow `.github/workflows/api-docs-portal.yml` builds `docs-portal` and deploys it to GitHub Pages.

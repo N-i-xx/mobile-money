@@ -41,7 +41,9 @@
     "test:write-latency": "ts-node scripts/test-write-latency.ts",
     "test:bench": "node tests/load/autocannon/benchmark.js",
     "sdk:generate": "openapi-generator-cli generate -i openapi.yaml -c sdk-config.yaml -o sdk",
-    "sdk:build": "cd sdk && ./gradlew build"
+    "sdk:build": "cd sdk && ./gradlew build",
+    "docs:dev": "npm --prefix docs-portal run start",
+    "docs:build": "npm --prefix docs-portal run build"
   },
   "lint-staged": {
     "*.{ts,tsx,js,cjs,mjs,json,md,yml,yaml}": "prettier --write"
