@@ -75,11 +75,11 @@ function loadProvider(key) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _a = key;
-                    switch (_a) {
+                    switch (key) {
                         case "mtn": return [3 /*break*/, 1];
                         case "airtel": return [3 /*break*/, 3];
                         case "orange": return [3 /*break*/, 5];
+                        case "mock": return [3 /*break*/, 8];
                     }
                     return [3 /*break*/, 7];
                 case 1: return [4 /*yield*/, Promise.resolve().then(function () { return require("./providers/mtn"); })];
@@ -95,6 +95,10 @@ function loadProvider(key) {
                     mod = _b.sent();
                     return [2 /*return*/, new mod.OrangeProvider()];
                 case 7: throw new Error("Unknown provider: ".concat(key));
+                case 8: return [4 /*yield*/, Promise.resolve().then(function () { return require("./providers/mock"); })];
+                case 9:
+                    mod = _b.sent();
+                    return [2 /*return*/, new mod.MockProvider()];
             }
         });
     });
@@ -141,7 +145,11 @@ var MobileMoneyService = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, loadProvider(providerKey)];
+                    case 0:
+                        if (this.providers.has(providerKey)) {
+                            return [2 /*return*/, this.providers.get(providerKey)];
+                        }
+                        return [4 /*yield*/, loadProvider(providerKey)];
                     case 1: return [2 /*return*/, _a.sent()];
                 }
             });
@@ -172,10 +180,25 @@ var MobileMoneyService = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.getProviderOrThrow(providerKey)];
+                    case 0:
+                        if (process.env.IS_SANDBOX === "true" && providerKey !== "mock") {
+                            throw new Error("SANDBOX_SECURITY_FAULT: External provider '".concat(providerKey, "' is hard-blocked in Sandbox mode."));
+                        }
+                        return [4 /*yield*/, this.getProviderOrThrow(providerKey)];
                     case 1:
                         provider = _a.sent();
                         operationType = this.getOperationType(op);
+                        if (process.env.IS_SANDBOX === "true" && providerKey === "mock") {
+                            return [2 /*return*/, {
+                                    success: true,
+                                    provider: "mock",
+                                    data: {
+                                        transactionId: "sandbox-auto-".concat(Date.now()),
+                                        status: "SUCCESSFUL",
+                                        isSandboxAutoApproved: true,
+                                    },
+                                }];
+                        }
                         backupKey = allowFailover && this.failoverEnabled()
                             ? this.getBackupProviderKey(providerKey)
                             : null;

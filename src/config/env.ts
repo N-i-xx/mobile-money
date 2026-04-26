@@ -13,6 +13,15 @@ export const env = cleanEnv(process.env, {
     desc: "PostgreSQL connection string",
     example: "postgresql://user:password@localhost:5432/dbname",
   }),
+  SANDBOX_DATABASE_URL: str({
+    desc: "PostgreSQL connection string for sandbox environment",
+    example: "postgresql://user:password@localhost:5432/dbname_sandbox",
+    default: "",
+  }),
+  IS_SANDBOX: bool({
+    desc: "Whether the application is running in sandbox mode",
+    default: false,
+  }),
   STELLAR_ISSUER_SECRET: str({
     desc: "Stellar secret key for the issuer account",
     example: "S...",
@@ -81,6 +90,8 @@ export const env = cleanEnv(process.env, {
 // Re-export specific values for convenience
 export const {
   DATABASE_URL,
+  SANDBOX_DATABASE_URL,
+  IS_SANDBOX,
   STELLAR_ISSUER_SECRET,
   REDIS_URL,
   STELLAR_HORIZON_URL,

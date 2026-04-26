@@ -17,6 +17,12 @@ export const configSchema = convict({
     default: 'development',
     env: 'NODE_ENV',
   },
+  isSandbox: {
+    doc: 'Whether the application is running in sandbox mode',
+    format: Boolean,
+    default: false,
+    env: 'IS_SANDBOX',
+  },
 
   // Database
   database: {
@@ -25,6 +31,12 @@ export const configSchema = convict({
       format: String,
       default: 'postgresql://localhost/mobile_money',
       env: 'DATABASE_URL',
+    },
+    sandboxUrl: {
+      doc: 'PostgreSQL connection URL for sandbox environment',
+      format: String,
+      default: 'postgresql://localhost/mobile_money_sandbox',
+      env: 'SANDBOX_DATABASE_URL',
     },
   },
 

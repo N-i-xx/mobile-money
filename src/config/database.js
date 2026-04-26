@@ -178,8 +178,10 @@ var SlowQueryPool = /** @class */ (function (_super) {
  * This significantly reduces the number of direct connections to Postgres
  * (INSERT, UPDATE, DELETE) and read operations when no replica is available.
  */
+var isSandbox = process.env.IS_SANDBOX === "true";
+var dbUrl = isSandbox ? (process.env.SANDBOX_DATABASE_URL || process.env.DATABASE_URL) : process.env.DATABASE_URL;
 exports.pool = new pg_1.Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: dbUrl,
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,

@@ -1,5 +1,6 @@
 import { Pool, QueryConfig, QueryResult, QueryResultRow, PoolClient } from "pg";
 import { isReadOnlyQuery } from "../utils/readOnlyDetector";
+import { IS_SANDBOX, SANDBOX_DATABASE_URL, DATABASE_URL } from "./env";
 
 
 // Configuration for slow query logging
@@ -132,7 +133,7 @@ class SlowQueryPool extends Pool {
  * (INSERT, UPDATE, DELETE) and read operations when no replica is available.
  */
 export const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: IS_SANDBOX ? (SANDBOX_DATABASE_URL || DATABASE_URL) : DATABASE_URL,
     max: 1000,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 500,
