@@ -15,6 +15,7 @@ import { hashPassword } from '../utils/password';
 import { redisClient } from '../config/redis';
 import { TransactionModel } from '../models/transaction';
 import { EmailService } from '../services/email';
+import { authRateLimiter } from '../middleware/authRateLimit';
 
 const emailService = new EmailService();
 
@@ -33,7 +34,7 @@ export const registerSchema = z.object({
 /**
  * POST /api/auth/register
  */
-authRoutes.post('/register', validateRequest(registerSchema), async (req: Request, res: Response) => {
+authRoutes.post('/register', authRateLimiter, validateRequest(registerSchema), async (req: Request, res: Response) => {
   const { phone_number, password } = req.body as z.infer<typeof registerSchema>;
   try {
     const passwordHash = await hashPassword(password);
@@ -61,7 +62,7 @@ authRoutes.use('/sso/oidc', createOIDCRouter());
  * Enforces account lockout after 5 failed attempts within 10 minutes.
  * Sends an email notification when an account is locked.
  */
-authRoutes.post('/login', async (req: Request, res: Response) => {
+authRoutes.post('/login', authRateLimiter, async (req: Request, res: Response) => {
   const { phone_number } = req.body;
 
   if (!phone_number) {
