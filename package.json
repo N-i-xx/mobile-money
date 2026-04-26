@@ -12,6 +12,7 @@
     "dev": "tsx watch src/index.ts",
     "docker:dev": "docker-compose -f docker-compose.dev.yml up",
     "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "provider-mock:dev": "tsx scripts/provider-mock-server.ts",
     "build": "tsc --noEmitOnError false || true",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",

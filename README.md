@@ -167,6 +167,17 @@ npm run docker:dev:down
 
 Includes hot reload and debugger on port `9229`.
 
+The development compose stack now also starts a local provider mock server on
+`http://localhost:4010` and points MTN/Airtel traffic at it automatically.
+Use `?scenario=success|failed|pending` or `x-mock-scenario` to control mock
+responses, and `?delayMs=...` or `x-mock-delay-ms` to simulate timeouts.
+
+To run only the mock server outside Docker:
+
+```bash
+npm run provider-mock:dev
+```
+
 ### Docker Production
 
 ```bash
