@@ -23,6 +23,14 @@ export const configSchema = convict({
     default: false,
     env: 'IS_SANDBOX',
   },
+  maintenance: {
+    enabled: {
+      doc: 'Whether the application is in maintenance mode (read-only)',
+      format: Boolean,
+      default: false,
+      env: 'APP_MAINTENANCE_MODE',
+    },
+  },
 
   // Database
   database: {

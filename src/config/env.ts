@@ -22,6 +22,10 @@ export const env = cleanEnv(process.env, {
     desc: "Whether the application is running in sandbox mode",
     default: false,
   }),
+  APP_MAINTENANCE_MODE: bool({
+    desc: "Whether the application is in maintenance mode (read-only)",
+    default: false,
+  }),
   STELLAR_ISSUER_SECRET: str({
     desc: "Stellar secret key for the issuer account",
     example: "S...",
@@ -101,4 +105,5 @@ export const {
   PAGERDUTY_INTEGRATION_KEY,
   PAGERDUTY_DEDUP_KEY,
   ADMIN_API_KEY,
+  APP_MAINTENANCE_MODE,
 } = env;
